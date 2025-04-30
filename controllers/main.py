@@ -34,24 +34,27 @@ class ProductAPI(http.Controller):
                         status=400
                     )
             
-            # Validar tipo de producto - actualizamos los tipos válidos para Odoo 18
+            # Validar tipo de producto
             valid_types = ['consu', 'service', 'combo']
             if data.get('type') not in valid_types:
                 return self._json_response(
                     {'error': f'Tipo de producto inválido. Debe ser uno de: {valid_types}'}, 
                     status=400
                 )
-            
-            # Obtener la moneda predeterminada de la compañía
-            company = request.env['res.company'].sudo().search([], limit=1)
-            currency = company.currency_id
-            
+
+            # Buscar la moneda "EUR" directamente
+            currency = request.env['res.currency'].sudo().search([('name', '=', 'EUR')], limit=1)
+
+            if not currency:
+                _logger.error("No se encontró la moneda EUR.")
+                return self._json_response({'error': 'No se encontró la moneda EUR.'}, status=500)
+
             # Preparar datos para creación/actualización
             product_data = {
                 'name': data.get('name'),
                 'type': data.get('type'),
                 'default_code': data.get('default_code'),
-                'currency_id': currency.id,  # Asignar moneda explícitamente
+                'currency_id': currency.id,
             }
             
             # Agregar campos opcionales
